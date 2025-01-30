@@ -8,7 +8,7 @@ name: Container build and push to ghcr.io
 on:
     workflow_dispatch:
     tags: [ 'v*.*.*' ]
-name: Container build and Push to ghcr.io
+    name: Container build and Push to ghcr.io
 
 env:
   # Use docker.io for Docker Hub if empty
