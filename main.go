@@ -163,7 +163,8 @@ func main() {
 	logger.Debug("Verbosity flags", slog.Bool("verboseFlag", verboseFlag), slog.Bool("debugFlag", debugFlag))
 	logger.Debug("root.json flags", slog.String("rootFlag", rootFlag), slog.String("rootFile", rootFile))
 	rootMap := map[string]string{}
-
+	sortedKeys := map[string]string{}
+	
 	var numDiffFiles int
 	for _, f := range parseFileArgs() {
 		logger.Info("Checking", slog.String("file", f))
