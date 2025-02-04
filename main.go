@@ -2,11 +2,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"golang.org/x/exp/slog" // nee "log/slog"
@@ -106,6 +108,18 @@ func setupLogger(logLevel *slog.LevelVar) *slog.Logger {
 	return logger
 }
 
+func sortKeysNoCase(data map[string]interface{}) []string {
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return strings.ToLower(keys[i]) < strings.ToLower(keys[j])
+	})
+
+	return keys
+
 func checkRootMap(rootMap map[string]string, filename string, rockon model.RockOn) {
 	var found bool
 	var foundName string
@@ -168,6 +182,22 @@ func main() {
 		json.Unmarshal(rootData, &rootMap)
 		logger.Debug("root.json flags", slog.String("rootFlag", rootFlag), slog.String("rootFile", rootFile))
 
+		// Sort the keys ignoring case
+		sortedKeys := sortKeysNoCase(rootMap)
+
+		// Create a new JSON object with sorted keys (not case-sensitive)
+		var buffer bytes.Buffer
+		encoder := json.NewEncoder(&buffer)
+		encoder.SetIndent("", "  ")
+
+		// Encode sorted keys into buffer
+		err = encoder.Encode(sortedKeys)
+		if err != nil {
+			panic(err)
+		}
+		// replace unsorted rootMap with sorted buffer
+		rootMap = buffer
+		
 		var rockon model.RockOn
 		err = json.Unmarshal(data, &rockon)
 		if err != nil {
