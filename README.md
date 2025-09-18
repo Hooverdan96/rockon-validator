@@ -1,13 +1,22 @@
-# rockon-validator
+# Rockon-validator
 
-This is a small script to validate and format RockOn json files. To install, simply run:
+A GO script to validate [Rockstor](https://rockstor.com/)'s [Rock-on](https://github.com/rockstor/rockon-registry) definitions.
+See also: [Rock-ons (Docker Plugins)](https://rockstor.com/docs/interface/overview.html).
 
+## Docker run
+
+Volume mount the definitions directory under `/files` within the container.
+Here we use the current/working directory, asking for any differences from the recommended format/content. 
+See [Run options](#run-options).
+
+```shell
+docker run -v $(pwd):/files ghcr.io/rockstor/rockon-validator:main --diff forgejo-runner.json
 ```
-go install github.com/rockstor/rockon-validator@latest
-# NOTE: Requires go version 1.20 or greater
-```
 
-and then to run, use any of the three options `--check`, `--diff`, or `--write` to validate your file:
+See the: [Development](#development) subsection below for running without docker,
+and for locally building both the GO binary and Docker container.   
+
+## Run options
 
 ```
 rockon-validator [--check] [--diff] [--write] [--root FILE] [--verbose|--debug] FILE...
@@ -24,15 +33,18 @@ Options:
     --debug        Enable debug logging
 ```
 
-For example, to Check that your file meets the correct format:
+## Example
 
+To Check `forgejo-runner.json` meets formating guidelines.
+N.B. uses a `go install` instantiated binary; see [Development](#development) below.
+
+```shell
+~/go/bin/rockon-validator --check forgejo-runner.json
 ```
-rockon-validator -c rockon.json
-```
 
-will exit with `0` (success), or non-zero (`1` in this case) if the file does not meet the correct format.
+Returns `0` (success), or `1` (fail).
 
-Similarly, `-d` will output a diff between the existing and expected format,
+Similarly, `--diff` produces a `diffutils` formated output re: existing and proposed file format:
 
 ```diff
 --- a/files/bitcoind.json
@@ -84,32 +96,61 @@ Similarly, `-d` will output a diff between the existing and expected format,
  }
 ```
 
-and `-w` will re-write the file, assuming it meets the correct syntax, but not the right formatting.
+N.B. `--write` **USE WITH CAUTION** re-writes the file in-place; assuming correct syntax but incorrect formatting.
 
 ## Multiple files
 
 Multiple files (or glob patterns) can be passed to validate several files simultaneously.
 
-## Root.json
+## The root.json index
 
-In addition, the script will check for a `root.json` file in the same directory as the given file (or files)
-and ensure that an entry exists for said file in the `root.json`, and that the name referenced matches, warning
-if they differ. If the `--root` flag is passed with a path to a `root.json` file, that file will be used instead.
+The script checks for a `root.json` index file and ensures a matching entry exists for the processed definitions.
+A warning will result for differing names, but an entry is added if non is found.
+An alternative target index file can be passed via the `--root` flag.
 
-No change to the name is made if they are different, but an entry is added if it is missing.
+## Development
 
-## Docker
+Details more associated with development. 
 
-If you do not have or want go 1.20+ on your machine, you can use the Docker container provided instead.
+### GO download and install
 
-To build, run:
+Alternative to the `docker run` approach, and required for development purposes.
+Requires GO version 1.20 or later.
+- [Upstream install instructions](https://go.dev/doc/install)
 
+### Script install/run (from repo)
+
+Builds and installs the `rockon-validator` binary directly from GitHub repo.
+
+```shell
+go install github.com/rockstor/rockon-validator@latest
 ```
-docker build -t validator:latest .
+
+Run via:
+
+```shell
+~/go/bin/rockon-validator
 ```
 
-And then to run, mount the directory containing your rockon file(s) to `/files` in the container:
+### Script run (from local source)
 
+Builds and runs `rockon-validator` from within a local copy of the source.
+
+```shell
+go run . --diff ./path/to/OpenSpeedTest.json
 ```
-docker run -v $(pwd):/files validator -w rockon.json
+
+### Build container
+
+This repo contains a docker image using the "FROM golang as builder" directive.
+See also [Script docker run](#docker-run) for pre-built container use.
+
+```shell
+docker build -t rockon-validator-local:latest .
+```
+
+Run via:
+
+```shell
+docker run -v $(pwd):/files rockon-validator-local --diff rockon.json
 ```
